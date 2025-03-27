@@ -14,11 +14,11 @@ func (target *target) SelectiveSync(conf *config.Sync) error {
 
 func (target *target) selective(conf *config.Sync) error {
 	if err := target.syncTeleporters(conf.GravitySettings); err != nil {
-		return fmt.Errorf("conf teleporters: %w", err)
+		return fmt.Errorf("sync teleporters: %w", err)
 	}
 
 	if err := target.syncConfigs(conf.ConfigSettings); err != nil {
-		return fmt.Errorf("conf configs: %w", err)
+		return fmt.Errorf("sync configs: %w", err)
 	}
 
 	if conf.RunGravity {
