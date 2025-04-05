@@ -111,7 +111,7 @@ The following environment variables can be specified:
 
 #### Config filters
 > Allows including or excluding specific config keys.\
-**Note:** `The SYNC_CONFIG_*_INCLUDE` and `SYNC_CONFIG_*_EXCLUDE` settings are mutually exclusive within each section.\
+**Note:** `The SYNC_CONFIG_*_INCLUDE` and `SYNC_CONFIG_*_EXCLUDE` settings are mutually exclusive within each section. Additionally, config filters are only applied if `FULL_SYNC=false`.\
 Config keys are relative to the section and are **case sensitive**. For example, the key `dns.upstreams` should be referred to as `upstreams`, and `dns.cache.size` should be referred to as `cache.size`.
 
 | Name                              | Example                    | Description                                     |
