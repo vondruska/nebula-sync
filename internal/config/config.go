@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+
 	"github.com/kelseyhightower/envconfig"
 	"github.com/lovelaze/nebula-sync/internal/pihole/model"
 	"github.com/lovelaze/nebula-sync/internal/sync/filter"
@@ -15,11 +16,13 @@ type Config struct {
 }
 
 type Sync struct {
-	FullSync        bool    `required:"true" envconfig:"FULL_SYNC"`
-	Cron            *string `envconfig:"CRON"`
-	RunGravity      bool    `default:"false" envconfig:"RUN_GRAVITY"`
-	GravitySettings *GravitySettings
-	ConfigSettings  *ConfigSettings `ignored:"true"`
+	FullSync          bool    `required:"true" envconfig:"FULL_SYNC"`
+	Cron              *string `envconfig:"CRON"`
+	RunGravity        bool    `default:"false" envconfig:"RUN_GRAVITY"`
+	GravitySettings   *GravitySettings
+	ConfigSettings    *ConfigSettings `ignored:"true"`
+	SuccessWebhookURL string          `default:"" envconfig:"SYNC_SUCCESS_WEBHOOK_URL"`
+	FailureWebhookURL string          `default:"" envconfig:"SYNC_FAILURE_WEBHOOK_URL"`
 }
 
 type GravitySettings struct {

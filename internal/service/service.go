@@ -2,6 +2,8 @@ package service
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/lovelaze/nebula-sync/internal/sync/retry"
 
 	"github.com/lovelaze/nebula-sync/internal/config"
@@ -65,10 +67,21 @@ func (service *Service) doSync(t sync.Target) (err error) {
 	}
 
 	if err != nil {
-		return err
+		if service.conf.Sync.FailureWebhookURL != "" {
+			if err := sendWebhook(service.conf.Sync.FailureWebhookURL); err != nil {
+				log.Error().Err(err).Msg("Failed to send failure webhook")
+			}
+		}
+	} else {
+		log.Info().Msg("Sync completed")
+
+		if service.conf.Sync.SuccessWebhookURL != "" {
+			if err := sendWebhook(service.conf.Sync.SuccessWebhookURL); err != nil {
+				log.Error().Err(err).Msg("Failed to send success webhook")
+			}
+		}
 	}
 
-	log.Info().Msg("Sync complete")
 	return err
 }
 
@@ -80,5 +93,26 @@ func (service *Service) startCron(cmd func()) error {
 	}
 
 	cron.Run()
+	return nil
+}
+
+func sendWebhook(webhookUrl string) error {
+	req, err := http.NewRequest("POST", webhookUrl, nil)
+	if err != nil {
+		return fmt.Errorf("create webhook request: %w", err)
+	}
+
+	req.Header.Set("User-Agent", fmt.Sprintf("nebula-sync/%s", version.Version))
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("send webhook request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("webhook returned status %d", resp.StatusCode)
+	}
+
 	return nil
 }
