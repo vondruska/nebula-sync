@@ -2,21 +2,22 @@ package service
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/lovelaze/nebula-sync/internal/sync/retry"
 
 	"github.com/lovelaze/nebula-sync/internal/config"
 	"github.com/lovelaze/nebula-sync/internal/pihole"
 	"github.com/lovelaze/nebula-sync/internal/sync"
+	"github.com/lovelaze/nebula-sync/internal/webhook"
 	"github.com/lovelaze/nebula-sync/version"
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog/log"
 )
 
 type Service struct {
-	target sync.Target
-	conf   config.Config
+	target  sync.Target
+	conf    config.Config
+	webhook webhook.WebhookClient
 }
 
 func Init() (*Service, error) {
@@ -35,8 +36,9 @@ func Init() (*Service, error) {
 	}
 
 	return &Service{
-		target: sync.NewTarget(primary, replicas),
-		conf:   conf,
+		target:  sync.NewTarget(primary, replicas),
+		conf:    conf,
+		webhook: webhook.NewWebhookClient(conf.Sync.SuccessWebhookURL, conf.Sync.FailureWebhookURL),
 	}, nil
 }
 
@@ -67,18 +69,14 @@ func (service *Service) doSync(t sync.Target) (err error) {
 	}
 
 	if err != nil {
-		if service.conf.Sync.FailureWebhookURL != "" {
-			if err := sendWebhook(service.conf.Sync.FailureWebhookURL); err != nil {
-				log.Error().Err(err).Msg("Failed to send failure webhook")
-			}
+		if err := service.webhook.Failure(); err != nil {
+			log.Error().Err(err).Msg("Failed to send failure webhook")
 		}
 	} else {
 		log.Info().Msg("Sync completed")
 
-		if service.conf.Sync.SuccessWebhookURL != "" {
-			if err := sendWebhook(service.conf.Sync.SuccessWebhookURL); err != nil {
-				log.Error().Err(err).Msg("Failed to send success webhook")
-			}
+		if err := service.webhook.Success(); err != nil {
+			log.Error().Err(err).Msg("Failed to send success webhook")
 		}
 	}
 
@@ -93,26 +91,5 @@ func (service *Service) startCron(cmd func()) error {
 	}
 
 	cron.Run()
-	return nil
-}
-
-func sendWebhook(webhookUrl string) error {
-	req, err := http.NewRequest("POST", webhookUrl, nil)
-	if err != nil {
-		return fmt.Errorf("create webhook request: %w", err)
-	}
-
-	req.Header.Set("User-Agent", fmt.Sprintf("nebula-sync/%s", version.Version))
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("send webhook request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		return fmt.Errorf("webhook returned status %d", resp.StatusCode)
-	}
-
 	return nil
 }
