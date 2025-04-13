@@ -87,8 +87,25 @@ The following environment variables can be specified:
 | `CLIENT_SKIP_TLS_VERIFICATION`     | false   | true            | Skips TLS certificate verification                 |
 | `CLIENT_RETRY_DELAY_SECONDS`       | 1       | 5               | Seconds to delay between connection attempts       |
 | `CLIENT_TIMEOUT_SECONDS`           | 20      | 60              | Http client timeout in seconds                     |
-| `SYNC_SUCCESS_WEBHOOK_URL`         | n/a     | `https://www.example.com/success` | Specifies the URL to be invoked when a sync is successful. HTTP POST with an empty body. |
-| `SYNC_FAILURE_WEBHOOK_URL`         | n/a     | `https://www.example.com/fail` | Specifies the URL to be invoked when a sync has failed for some reason. HTTP POST with an empty body.|
+
+#### Webhooks
+
+Nebula Sync can invoke webhooks depeneding if a sync succeeded or failed. URL is required for the webhook to trigger. Both sucess and failure webhooks use the same enviroment variable pattern.
+
+| Name                                    | Default | Example                           | Description                                        |
+|-----------------------------------------|---------|-----------------------------------|----------------------------------------------------|
+| `SYNC_WEBHOOK_(SUCCESS\|FAILURE)_URL`    | n/a     | `https://www.example.com/webhook` | URL to invoke for the webhook    |
+| `SYNC_WEBHOOK_(SUCCESS\|FAILURE)_METHOD` | `POST`  | `GET`                             | The HTTP method for the webhook     |
+| `SYNC_WEBHOOK_(SUCCESS\|FAILURE)_BODY`   | n/a     | `this is my webhook body`         | The body of the webhook request |
+| `SYNC_WEBHOOK_(SUCCESS\|FAILURE)_HEADERS` | n/a    | `header1:foo,header2:bar`         | HTTP headers to set for the webhook request in the format `key:value` separated by comma. Any whitespace will be used verbatim, no string trimming. | 
+
+Additionally, webhooks have an independent HTTP client configuration. Similar settings as the pihole client but will only be used in the webhook context.
+
+| Name                                            | Default | Example         | Description                                        |
+|-------------------------------------------------|---------|-----------------|----------------------------------------------------|
+| `SYNC_WEBHOOK_CLIENT_SKIP_TLS_VERIFICATION`     | false   | true            | Skips TLS certificate verification                 |
+| `SYNC_WEBHOOK_CLIENT_RETRY_DELAY_SECONDS`       | 1       | 5               | Seconds to delay between connection attempts       |
+| `SYNC_WEBHOOK_CLIENT_TIMEOUT_SECONDS`           | 20      | 60              | Http client timeout in seconds                     |
 
 
 > **Note:** The following optional settings apply only if `FULL_SYNC=false`. They allow for granular control of synchronization if a full sync is not wanted.

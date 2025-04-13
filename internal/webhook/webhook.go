@@ -3,7 +3,9 @@ package webhook
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
+	"github.com/lovelaze/nebula-sync/internal/config"
 	"github.com/lovelaze/nebula-sync/version"
 )
 
@@ -13,40 +15,44 @@ type WebhookClient interface {
 }
 
 type webhookClient struct {
-	successWebhookURL string
-	failureWebhookURL string
+	successConfig config.WebhookEventSetting
+	failureConfig config.WebhookEventSetting
+	client        *http.Client
 }
 
-func NewWebhookClient(successWebhookURL, failureWebhookURL string) WebhookClient {
+func NewWebhookClient(c *config.WebhookSettings) WebhookClient {
 	return &webhookClient{
-		successWebhookURL: successWebhookURL,
-		failureWebhookURL: failureWebhookURL,
+		successConfig: c.Success,
+		failureConfig: c.Failure,
+		client:        c.Client.NewHttpClient(),
 	}
 }
 
 func (webhookClient *webhookClient) Success() error {
-	if webhookClient.successWebhookURL == "" {
-		return nil
-	}
-	return invokeWebhook(webhookClient.successWebhookURL)
+	return invokeWebhook(webhookClient.client, webhookClient.successConfig)
 }
 
 func (webhookClient *webhookClient) Failure() error {
-	if webhookClient.failureWebhookURL == "" {
-		return nil
-	}
-	return invokeWebhook(webhookClient.failureWebhookURL)
+	return invokeWebhook(webhookClient.client, webhookClient.failureConfig)
 }
 
-func invokeWebhook(url string) error {
-	req, err := http.NewRequest("POST", url, nil)
+func invokeWebhook(client *http.Client, settings config.WebhookEventSetting) error {
+	if settings.Url == "" {
+		return nil
+	}
+
+	req, err := http.NewRequest(settings.Method, settings.Url, strings.NewReader(settings.Body))
 	if err != nil {
 		return fmt.Errorf("create webhook request: %w", err)
 	}
 
 	req.Header.Set("User-Agent", fmt.Sprintf("nebula-sync/%s", version.Version))
 
-	resp, err := http.DefaultClient.Do(req)
+	for key, value := range settings.Headers {
+		req.Header.Set(key, value)
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("send webhook request: %w", err)
 	}

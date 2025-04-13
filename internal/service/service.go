@@ -38,7 +38,7 @@ func Init() (*Service, error) {
 	return &Service{
 		target:  sync.NewTarget(primary, replicas),
 		conf:    conf,
-		webhook: webhook.NewWebhookClient(conf.Sync.SuccessWebhookURL, conf.Sync.FailureWebhookURL),
+		webhook: webhook.NewWebhookClient(conf.Sync.WebhookSettings),
 	}, nil
 }
 
