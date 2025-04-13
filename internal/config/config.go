@@ -231,3 +231,11 @@ func (cs *ConfigSetting) String() string {
 func (cs *ConfigFilter) String() string {
 	return fmt.Sprintf("%+v", *cs)
 }
+
+func (wes *WebhookEventSetting) String() string {
+	return fmt.Sprintf("%+v", *wes)
+}
+
+func (wes *WebhookSettings) String() string {
+	return fmt.Sprintf("%+v", *wes)
+}
