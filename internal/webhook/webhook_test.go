@@ -1,105 +1,144 @@
 package webhook
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/lovelaze/nebula-sync/internal/config"
 	"github.com/lovelaze/nebula-sync/version"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/require"
 )
 
-type WebhookTestSuite struct {
-	suite.Suite
-	server *httptest.Server
-}
+func TestWebhookClient(t *testing.T) {
+	t.Run("success webhook uses success configuration", func(t *testing.T) {
+		// Setup test server to verify request
+		var receivedHeaders http.Header
+		var receivedBody string
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			receivedHeaders = r.Header
+			buf := make([]byte, 1024)
+			n, _ := r.Body.Read(buf)
+			receivedBody = string(buf[:n])
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer ts.Close()
 
-func TestWebhookSuite(t *testing.T) {
-	suite.Run(t, new(WebhookTestSuite))
-}
-
-func (suite *WebhookTestSuite) SetupTest() {
-	suite.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		expectedUA := fmt.Sprintf("nebula-sync/%s", version.Version)
-		if r.Header.Get("User-Agent") != expectedUA {
-			w.WriteHeader(http.StatusBadRequest)
-			return
+		// Create webhook settings
+		settings := &config.WebhookSettings{
+			Success: config.WebhookEventSetting{
+				Url:     ts.URL,
+				Method:  "POST",
+				Body:    "success-body",
+				Headers: map[string]string{"X-Test": "success"},
+			},
+			Client: config.Client{
+				Timeout: 30,
+			},
 		}
-		w.WriteHeader(http.StatusOK)
-	}))
-}
 
-func (suite *WebhookTestSuite) TearDownTest() {
-	suite.server.Close()
-}
+		client := NewWebhookClient(settings)
+		err := client.Success()
+		require.NoError(t, err)
 
-func (suite *WebhookTestSuite) TestEmptyURLs() {
-	client := NewWebhookClient("", "")
+		// Verify request
+		assert.Equal(t, "success-body", receivedBody)
+		assert.Equal(t, "success", receivedHeaders.Get("X-Test"))
+		assert.Equal(t, "nebula-sync/"+version.Version, receivedHeaders.Get("User-Agent"))
+	})
 
-	err := client.Success()
-	assert.NoError(suite.T(), err)
+	t.Run("failure webhook uses failure configuration", func(t *testing.T) {
+		var receivedHeaders http.Header
+		var receivedBody string
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			receivedHeaders = r.Header
+			buf := make([]byte, 1024)
+			n, _ := r.Body.Read(buf)
+			receivedBody = string(buf[:n])
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer ts.Close()
 
-	err = client.Failure()
-	assert.NoError(suite.T(), err)
-}
+		settings := &config.WebhookSettings{
+			Failure: config.WebhookEventSetting{
+				Url:     ts.URL,
+				Method:  "PUT",
+				Body:    "failure-body",
+				Headers: map[string]string{"X-Test": "failure"},
+			},
+			Client: config.Client{
+				Timeout: 30,
+			},
+		}
 
-func (suite *WebhookTestSuite) TestSuccessWebhook() {
-	client := NewWebhookClient(suite.server.URL, "")
+		client := NewWebhookClient(settings)
+		err := client.Failure()
+		require.NoError(t, err)
 
-	err := client.Success()
-	assert.NoError(suite.T(), err)
-}
+		assert.Equal(t, "failure-body", receivedBody)
+		assert.Equal(t, "failure", receivedHeaders.Get("X-Test"))
+	})
 
-func (suite *WebhookTestSuite) TestFailureWebhook() {
-	client := NewWebhookClient("", suite.server.URL)
+	t.Run("empty url skips webhook", func(t *testing.T) {
+		settings := &config.WebhookSettings{
+			Success: config.WebhookEventSetting{
+				Url: "",
+			},
+		}
 
-	err := client.Failure()
-	assert.NoError(suite.T(), err)
-}
+		client := NewWebhookClient(settings)
+		err := client.Success()
+		require.NoError(t, err)
+	})
 
-func (suite *WebhookTestSuite) TestInvalidURL() {
-	client := NewWebhookClient("invalid-url", "")
+	t.Run("http client honors timeout", func(t *testing.T) {
+		serverDone := make(chan struct{})
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			select {
+			case <-r.Context().Done():
+				close(serverDone)
+				return
+			case <-time.After(5 * time.Second):
+				w.WriteHeader(http.StatusOK)
+			}
+		}))
+		defer ts.Close()
 
-	err := client.Success()
-	assert.Error(suite.T(), err)
-}
+		settings := &config.WebhookSettings{
+			Success: config.WebhookEventSetting{
+				Url: ts.URL,
+			},
+			Client: config.Client{
+				Timeout: 1, // 100ms timeout
+			},
+		}
 
-func (suite *WebhookTestSuite) TestServerError() {
-	errorServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	defer errorServer.Close()
+		client := NewWebhookClient(settings)
+		err := client.Success()
 
-	client := NewWebhookClient(errorServer.URL, "")
+		<-serverDone
 
-	err := client.Success()
-	assert.Error(suite.T(), err)
-}
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "context deadline exceeded")
+	})
 
-func (suite *WebhookTestSuite) TestServerUnavailable() {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	server.Close()
+	t.Run("error on non-200 response", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusBadRequest)
+		}))
+		defer ts.Close()
 
-	client := NewWebhookClient(server.URL, "")
+		settings := &config.WebhookSettings{
+			Success: config.WebhookEventSetting{
+				Url: ts.URL,
+			},
+		}
 
-	err := client.Success()
-	assert.Error(suite.T(), err)
-	assert.Contains(suite.T(), err.Error(), "send webhook request")
-}
-
-func (suite *WebhookTestSuite) TestUserAgentHeader() {
-	var receivedUA string
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		receivedUA = r.Header.Get("User-Agent")
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer testServer.Close()
-
-	client := NewWebhookClient(testServer.URL, "")
-	err := client.Success()
-
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), fmt.Sprintf("nebula-sync/%s", version.Version), receivedUA)
+		client := NewWebhookClient(settings)
+		err := client.Success()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "webhook returned status 400")
+	})
 }

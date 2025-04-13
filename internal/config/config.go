@@ -16,13 +16,12 @@ type Config struct {
 }
 
 type Sync struct {
-	FullSync          bool    `required:"true" envconfig:"FULL_SYNC"`
-	Cron              *string `envconfig:"CRON"`
-	RunGravity        bool    `default:"false" envconfig:"RUN_GRAVITY"`
-	GravitySettings   *GravitySettings
-	ConfigSettings    *ConfigSettings `ignored:"true"`
-	SuccessWebhookURL string          `default:"" envconfig:"SYNC_SUCCESS_WEBHOOK_URL"`
-	FailureWebhookURL string          `default:"" envconfig:"SYNC_FAILURE_WEBHOOK_URL"`
+	FullSync        bool    `required:"true" envconfig:"FULL_SYNC"`
+	Cron            *string `envconfig:"CRON"`
+	RunGravity      bool    `default:"false" envconfig:"RUN_GRAVITY"`
+	GravitySettings *GravitySettings
+	ConfigSettings  *ConfigSettings  `ignored:"true"`
+	WebhookSettings *WebhookSettings `ignored:"true"`
 }
 
 type GravitySettings struct {
@@ -172,6 +171,10 @@ func (c *Config) Load() error {
 		return err
 	}
 
+	if err := c.loadWebhookSettings(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -227,4 +230,12 @@ func (cs *ConfigSetting) String() string {
 
 func (cs *ConfigFilter) String() string {
 	return fmt.Sprintf("%+v", *cs)
+}
+
+func (wes *WebhookEventSetting) String() string {
+	return fmt.Sprintf("%+v", *wes)
+}
+
+func (wes *WebhookSettings) String() string {
+	return fmt.Sprintf("%+v", *wes)
 }

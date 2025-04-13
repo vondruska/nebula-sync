@@ -1,10 +1,11 @@
 package config
 
 import (
+	"testing"
+
 	"github.com/lovelaze/nebula-sync/internal/sync/filter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestConfig_Load(t *testing.T) {
@@ -23,6 +24,8 @@ func TestConfig_Load(t *testing.T) {
 	assert.Equal(t, "http://localhost:1338", conf.Replicas[0].Url.String())
 	assert.Equal(t, "qwerty", conf.Replicas[0].Password)
 	assert.Equal(t, false, conf.Sync.FullSync)
+	assert.Equal(t, "POST", conf.Sync.WebhookSettings.Success.Method)
+	assert.Equal(t, "POST", conf.Sync.WebhookSettings.Failure.Method)
 }
 
 func TestConfig_loadSync(t *testing.T) {
