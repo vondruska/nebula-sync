@@ -88,25 +88,6 @@ The following environment variables can be specified:
 | `CLIENT_RETRY_DELAY_SECONDS`       | 1       | 5               | Seconds to delay between connection attempts       |
 | `CLIENT_TIMEOUT_SECONDS`           | 20      | 60              | Http client timeout in seconds                     |
 
-#### Webhooks
-
-Nebula Sync can invoke webhooks depeneding if a sync succeeded or failed. URL is required for the webhook to trigger. Both sucess and failure webhooks use the same enviroment variable pattern.
-
-| Name                                    | Default | Example                           | Description                                        |
-|-----------------------------------------|---------|-----------------------------------|----------------------------------------------------|
-| `SYNC_WEBHOOK_(SUCCESS\|FAILURE)_URL`    | n/a     | `https://www.example.com/webhook` | URL to invoke for the webhook    |
-| `SYNC_WEBHOOK_(SUCCESS\|FAILURE)_METHOD` | `POST`  | `GET`                             | The HTTP method for the webhook     |
-| `SYNC_WEBHOOK_(SUCCESS\|FAILURE)_BODY`   | n/a     | `this is my webhook body`         | The body of the webhook request |
-| `SYNC_WEBHOOK_(SUCCESS\|FAILURE)_HEADERS` | n/a    | `header1:foo,header2:bar`         | HTTP headers to set for the webhook request in the format `key:value` separated by comma. Any whitespace will be used verbatim, no string trimming. | 
-
-Additionally, webhooks have an independent HTTP client configuration. Similar settings as the pihole client but will only be used in the webhook context.
-
-| Name                                            | Default | Example         | Description                                        |
-|-------------------------------------------------|---------|-----------------|----------------------------------------------------|
-| `SYNC_WEBHOOK_CLIENT_SKIP_TLS_VERIFICATION`     | false   | true            | Skips TLS certificate verification                 |
-| `SYNC_WEBHOOK_CLIENT_RETRY_DELAY_SECONDS`       | 1       | 5               | Seconds to delay between connection attempts       |
-| `SYNC_WEBHOOK_CLIENT_TIMEOUT_SECONDS`           | 20      | 60              | Http client timeout in seconds                     |
-
 
 > **Note:** The following optional settings apply only if `FULL_SYNC=false`. They allow for granular control of synchronization if a full sync is not wanted.
 
@@ -151,6 +132,49 @@ Config keys are relative to the section and are **case sensitive**. For example,
 | `SYNC_CONFIG_DEBUG_INCLUDE`       | database,networking        | Debug config keys to include                   |
 | `SYNC_CONFIG_DEBUG_EXCLUDE`       | database,networking        | Debug config keys to exclude                   |
 
+
+### Webhooks
+
+Nebula Sync can invoke webhooks depeneding if a sync succeeded or failed. URL is required for the webhook to trigger. Both sucess and failure webhooks use the same enviroment variable pattern.
+
+| Name                                    | Default | Example                           | Description                                        |
+|-----------------------------------------|---------|-----------------------------------|----------------------------------------------------|
+| `SYNC_WEBHOOK_(SUCCESS\|FAILURE)_URL`    | n/a     | `https://www.example.com/webhook` | URL to invoke for the webhook    |
+| `SYNC_WEBHOOK_(SUCCESS\|FAILURE)_METHOD` | `POST`  | `GET`                             | The HTTP method for the webhook     |
+| `SYNC_WEBHOOK_(SUCCESS\|FAILURE)_BODY`   | n/a     | `this is my webhook body`         | The body of the webhook request |
+| `SYNC_WEBHOOK_(SUCCESS\|FAILURE)_HEADERS` | n/a    | `header1:foo,header2:bar`         | HTTP headers to set for the webhook request in the format `key:value` separated by comma. Any whitespace will be used verbatim, no string trimming. | 
+
+Additionally, webhooks have an independent HTTP client configuration. Similar settings as the pihole client but will only be used in the webhook context.
+
+| Name                                            | Default | Example         | Description                                        |
+|-------------------------------------------------|---------|-----------------|----------------------------------------------------|
+| `SYNC_WEBHOOK_CLIENT_SKIP_TLS_VERIFICATION`     | false   | true            | Skips TLS certificate verification                 |
+| `SYNC_WEBHOOK_CLIENT_RETRY_DELAY_SECONDS`       | 1       | 5               | Seconds to delay between connection attempts       |
+| `SYNC_WEBHOOK_CLIENT_TIMEOUT_SECONDS`           | 20      | 60              | Http client timeout in seconds                     |
+
+#### Examples
+
+healthcheck.io:
+
+```
+SYNC_WEBHOOK_SUCCESS_URL=https://hc-ping.com/{your-slug-or-guid-here}
+SYNC_WEBHOOK_FAILURE_URL=https://hc-ping.com/{your-slug-or-guid-here}/fail
+```
+
+Apprise:
+
+```
+SYNC_WEBHOOK_FAILURE_URL=http://localhost:8080/notify
+SYNC_WEBHOOK_FAILURE_BODY=urls=mailto://user:pass@gmail.com&body=test message
+```
+
+A service that needs JSON:
+
+```
+SYNC_WEBHOOK_FAILURE_URL=https://www.example.com/notify.json
+SYNC_WEBHOOK_FAILURE_BODY={"hello":"world"}
+SYNC_WEBHOOK_FAILURE_HEADERS=Content-Type:application/json
+```
 
 
 ## Disclaimer
