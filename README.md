@@ -154,21 +154,21 @@ Additionally, webhooks have an independent HTTP client configuration. Similar se
 
 #### Examples
 
-healthcheck.io:
+##### healthcheck.io:
 
 ```
 SYNC_WEBHOOK_SUCCESS_URL=https://hc-ping.com/{your-slug-or-guid-here}
 SYNC_WEBHOOK_FAILURE_URL=https://hc-ping.com/{your-slug-or-guid-here}/fail
 ```
 
-Apprise:
+##### Apprise:
 
 ```
 SYNC_WEBHOOK_FAILURE_URL=http://localhost:8080/notify
 SYNC_WEBHOOK_FAILURE_BODY=urls=mailto://user:pass@gmail.com&body=test message
 ```
 
-A service that needs JSON:
+##### A service that needs JSON:
 
 ```
 SYNC_WEBHOOK_FAILURE_URL=https://www.example.com/notify.json
