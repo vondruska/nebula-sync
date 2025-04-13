@@ -7,6 +7,7 @@ import (
 
 	"github.com/lovelaze/nebula-sync/internal/config"
 	"github.com/lovelaze/nebula-sync/version"
+	"github.com/rs/zerolog/log"
 )
 
 type WebhookClient interface {
@@ -40,6 +41,13 @@ func invokeWebhook(client *http.Client, settings config.WebhookEventSetting) err
 	if settings.Url == "" {
 		return nil
 	}
+
+	log.Debug().
+		Str("url", settings.Url).
+		Str("method", settings.Method).
+		Str("body", settings.Body).
+		Interface("headers", settings.Headers).
+		Msg("Invoking webhook")
 
 	req, err := http.NewRequest(settings.Method, settings.Url, strings.NewReader(settings.Body))
 	if err != nil {
