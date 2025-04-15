@@ -9,7 +9,11 @@ import (
 type WebhookSettings struct {
 	Failure WebhookEventSetting `ignored:"true"`
 	Success WebhookEventSetting `ignored:"true"`
-	Client  Client              `ignored:"true"`
+	Client  WebhookClient       `ignored:"true"`
+}
+
+type WebhookClient struct {
+	SkipTLSVerification bool `default:"false" envconfig:"SKIP_TLS_VERIFICATION"`
 }
 
 type WebhookEventSetting struct {
@@ -25,7 +29,7 @@ func (c *Config) loadWebhookSettings() error {
 	webhookSettings := WebhookSettings{
 		Failure: WebhookEventSetting{},
 		Success: WebhookEventSetting{},
-		Client:  Client{},
+		Client:  WebhookClient{},
 	}
 
 	if err := envconfig.Process(envPrefix+"FAILURE", &webhookSettings.Failure); err != nil {

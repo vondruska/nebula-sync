@@ -135,7 +135,7 @@ Config keys are relative to the section and are **case sensitive**. For example,
 
 ### Webhooks
 
-Nebula Sync can invoke webhooks depeneding if a sync succeeded or failed. URL is required for the webhook to trigger. Both sucess and failure webhooks use the same enviroment variable pattern.
+Nebula Sync can invoke webhooks depeneding if a sync succeeded or failed. URL is required for the webhook to trigger. Both success and failure webhooks use the same enviroment variable pattern. Webhooks have a timeout of 10 seconds.
 
 | Name                                    | Default | Example                           | Description                                        |
 |-----------------------------------------|---------|-----------------------------------|----------------------------------------------------|
@@ -144,13 +144,11 @@ Nebula Sync can invoke webhooks depeneding if a sync succeeded or failed. URL is
 | `SYNC_WEBHOOK_(SUCCESS\|FAILURE)_BODY`   | n/a     | `this is my webhook body`         | The body of the webhook request |
 | `SYNC_WEBHOOK_(SUCCESS\|FAILURE)_HEADERS` | n/a    | `header1:foo,header2:bar`         | HTTP headers to set for the webhook request in the format `key:value` separated by comma. Any whitespace will be used verbatim, no string trimming. | 
 
-Additionally, webhooks have an independent HTTP client configuration. Similar settings as the pihole client but will only be used in the webhook context.
+Additionally, you can skip TLS verification for all webhooks if necessary:
 
 | Name                                            | Default | Example         | Description                                        |
 |-------------------------------------------------|---------|-----------------|----------------------------------------------------|
 | `SYNC_WEBHOOK_CLIENT_SKIP_TLS_VERIFICATION`     | false   | true            | Skips TLS certificate verification                 |
-| `SYNC_WEBHOOK_CLIENT_RETRY_DELAY_SECONDS`       | 1       | 5               | Seconds to delay between connection attempts       |
-| `SYNC_WEBHOOK_CLIENT_TIMEOUT_SECONDS`           | 20      | 60              | Http client timeout in seconds                     |
 
 #### Examples
 

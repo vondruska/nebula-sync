@@ -95,9 +95,7 @@ func TestWebhookSettings_EmptyURLs(t *testing.T) {
 
 func TestWebhookSettings_ClientConfiguration(t *testing.T) {
 	t.Setenv("SYNC_WEBHOOK_SUCCESS_URL", "http://success.example.com")
-	t.Setenv("CLIENT_TIMEOUT_SECONDS", "30")
-	t.Setenv("CLIENT_RETRY_DELAY_SECONDS", "5")
-	t.Setenv("CLIENT_SKIP_TLS_VERIFICATION", "true")
+	t.Setenv("SYNC_WEBHOOK_CLIENT_SKIP_TLS_VERIFICATION", "true")
 
 	conf := Config{
 		Sync: &Sync{},
@@ -106,7 +104,5 @@ func TestWebhookSettings_ClientConfiguration(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NotNil(t, conf.Sync.WebhookSettings.Client)
-	assert.Equal(t, int64(30), conf.Sync.WebhookSettings.Client.Timeout)
-	assert.Equal(t, int64(5), conf.Sync.WebhookSettings.Client.RetryDelay)
 	assert.True(t, conf.Sync.WebhookSettings.Client.SkipTLSVerification)
 }

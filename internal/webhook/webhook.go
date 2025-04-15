@@ -1,9 +1,11 @@
 package webhook
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/lovelaze/nebula-sync/internal/config"
 	"github.com/lovelaze/nebula-sync/version"
@@ -25,7 +27,11 @@ func NewWebhookClient(c *config.WebhookSettings) WebhookClient {
 	return &webhookClient{
 		successConfig: c.Success,
 		failureConfig: c.Failure,
-		client:        c.Client.NewHttpClient(),
+		client: &http.Client{
+			Timeout: 10 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: c.Client.SkipTLSVerification},
+			}},
 	}
 }
 

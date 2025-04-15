@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/lovelaze/nebula-sync/internal/config"
 	"github.com/lovelaze/nebula-sync/version"
@@ -34,9 +33,7 @@ func TestWebhookClient(t *testing.T) {
 				Body:    "success-body",
 				Headers: map[string]string{"X-Test": "success"},
 			},
-			Client: config.Client{
-				Timeout: 30,
-			},
+			Client: config.WebhookClient{},
 		}
 
 		client := NewWebhookClient(settings)
@@ -68,9 +65,7 @@ func TestWebhookClient(t *testing.T) {
 				Body:    "failure-body",
 				Headers: map[string]string{"X-Test": "failure"},
 			},
-			Client: config.Client{
-				Timeout: 30,
-			},
+			Client: config.WebhookClient{},
 		}
 
 		client := NewWebhookClient(settings)
@@ -91,37 +86,6 @@ func TestWebhookClient(t *testing.T) {
 		client := NewWebhookClient(settings)
 		err := client.Success()
 		require.NoError(t, err)
-	})
-
-	t.Run("http client honors timeout", func(t *testing.T) {
-		serverDone := make(chan struct{})
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			select {
-			case <-r.Context().Done():
-				close(serverDone)
-				return
-			case <-time.After(5 * time.Second):
-				w.WriteHeader(http.StatusOK)
-			}
-		}))
-		defer ts.Close()
-
-		settings := &config.WebhookSettings{
-			Success: config.WebhookEventSetting{
-				Url: ts.URL,
-			},
-			Client: config.Client{
-				Timeout: 1, // 100ms timeout
-			},
-		}
-
-		client := NewWebhookClient(settings)
-		err := client.Success()
-
-		<-serverDone
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "context deadline exceeded")
 	})
 
 	t.Run("error on non-200 response", func(t *testing.T) {
